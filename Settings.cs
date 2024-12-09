@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
+using System.Drawing;
 using System.Windows.Forms;
-using ExileCore.Shared.Attributes;
-using ExileCore.Shared.Interfaces;
-using ExileCore.Shared.Nodes;
-using SharpDX;
+using ExileCore2.Shared.Attributes;
+using ExileCore2.Shared.Interfaces;
+using ExileCore2.Shared.Nodes;
 using Vector2 = System.Numerics.Vector2;
 
 namespace HighlightedItems;

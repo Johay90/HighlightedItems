@@ -1,22 +1,24 @@
 ﻿using System.Windows.Forms;
 using HighlightedItems.Utils;
-using ExileCore;
-using ExileCore.PoEMemory.Elements.InventoryElements;
-using ExileCore.PoEMemory.MemoryObjects;
+using ExileCore2;
+using ExileCore2.PoEMemory.Elements.InventoryElements;
+using ExileCore2.PoEMemory.MemoryObjects;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using ExileCore.Shared.Enums;
+using ExileCore2.Shared.Enums;
 using ImGuiNET;
 using System;
 using System.Diagnostics;
+using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using ExileCore.PoEMemory.Components;
-using ExileCore.Shared;
-using ExileCore.Shared.Helpers;
+using ExileCore2.PoEMemory.Components;
+using ExileCore2.Shared;
+using ExileCore2.Shared.Helpers;
 using ItemFilterLibrary;
+using RectangleF = ExileCore2.Shared.RectangleF;
 
 namespace HighlightedItems;
 
@@ -32,7 +34,7 @@ public class HighlightedItems : BaseSettingsPlugin<Settings>
 
     private bool MoveCancellationRequested => Settings.CancelWithRightMouseButton && (Control.MouseButtons & MouseButtons.Right) != 0;
     private IngameState InGameState => GameController.IngameState;
-    private SharpDX.Vector2 WindowOffset => GameController.Window.GetWindowRectangleTimeCache.TopLeft;
+    private Vector2 WindowOffset => GameController.Window.GetWindowRectangleTimeCache.TopLeft;
 
     public override bool Initialise()
     {
@@ -176,15 +178,15 @@ public class HighlightedItems : BaseSettingsPlugin<Settings>
         if (inventory != null)
         {
             var stashRect = rectElement.GetClientRectCache;
-            var (itemFilter, isCustomFilter) = GetPredicate("Custom stash filter", ref _customStashFilter, stashRect.BottomLeft.ToVector2Num()) is { } customPredicate
+            var (itemFilter, isCustomFilter) = GetPredicate("Custom stash filter", ref _customStashFilter, stashRect.BottomLeft) is { } customPredicate
                 ? ((Predicate<NormalInventoryItem>)(s => customPredicate(s.Item)), true)
                 : (s => s.isHighlighted != Settings.InvertSelection.Value, false);
 
             //Determine Stash Pickup Button position and draw
             var buttonPos = Settings.UseCustomMoveToInventoryButtonPosition
                 ? Settings.CustomMoveToInventoryButtonPosition
-                : stashRect.BottomRight.ToVector2Num() + new Vector2(-43, 10);
-            var buttonRect = new SharpDX.RectangleF(buttonPos.X, buttonPos.Y, buttonSize, buttonSize);
+                : stashRect.BottomRight + new Vector2(-43, 10);
+            var buttonRect = new RectangleF(buttonPos.X, buttonPos.Y, buttonSize, buttonSize);
 
             Graphics.DrawImage("pick.png", buttonRect);
 
@@ -197,7 +199,7 @@ public class HighlightedItems : BaseSettingsPlugin<Settings>
                 if (isCustomFilter)
                 {
                     var rect = item.GetClientRectCache;
-                    Graphics.DrawFrame(rect.TopLeft.ToVector2Num(), rect.BottomRight.ToVector2Num(), Settings.CustomFilterFrameColor, Settings.CustomFilterFrameThickness);
+                    Graphics.DrawFrame(rect.TopLeft, rect.BottomRight, Settings.CustomFilterFrameColor, Settings.CustomFilterFrameThickness);
                 }
             }
 
@@ -208,8 +210,8 @@ public class HighlightedItems : BaseSettingsPlugin<Settings>
                 : $"{highlightedItems.Count}";
 
             var countPos = new Vector2(buttonRect.Left - 2, buttonRect.Center.Y - 11);
-            Graphics.DrawText($"{countText}", countPos with { Y = countPos.Y + 2 }, SharpDX.Color.Black, 10, FontAlign.Right);
-            Graphics.DrawText($"{countText}", countPos with { X = countPos.X - 2 }, SharpDX.Color.White, 10, FontAlign.Right);
+            Graphics.DrawText($"{countText}", countPos with { Y = countPos.Y + 2 }, Color.Black, FontAlign.Right);
+            Graphics.DrawText($"{countText}", countPos with { X = countPos.X - 2 }, Color.White, FontAlign.Right);
 
             if (IsButtonPressed(buttonRect) ||
                 Input.IsKeyDown(Settings.MoveToInventoryHotkey.Value))
@@ -234,7 +236,7 @@ public class HighlightedItems : BaseSettingsPlugin<Settings>
         {
             var inventoryRect = inventoryPanel[2].GetClientRectCache;
 
-            var (itemFilter, isCustomFilter) = GetPredicate("Custom inventory filter", ref _customInventoryFilter, inventoryRect.BottomLeft.ToVector2Num()) is { } customPredicate
+            var (itemFilter, isCustomFilter) = GetPredicate("Custom inventory filter", ref _customInventoryFilter, inventoryRect.BottomLeft) is { } customPredicate
                 ? (customPredicate, true)
                 : (_ => true, false);
 
@@ -243,15 +245,15 @@ public class HighlightedItems : BaseSettingsPlugin<Settings>
                 //Determine Inventory Pickup Button position and draw
                 var buttonPos = Settings.UseCustomMoveToStashButtonPosition
                     ? Settings.CustomMoveToStashButtonPosition
-                    : inventoryRect.TopLeft.ToVector2Num() + new Vector2(buttonSize / 2, -buttonSize);
-                var buttonRect = new SharpDX.RectangleF(buttonPos.X, buttonPos.Y, buttonSize, buttonSize);
+                    : inventoryRect.TopLeft + new Vector2(buttonSize / 2, -buttonSize);
+                var buttonRect = new RectangleF(buttonPos.X, buttonPos.Y, buttonSize, buttonSize);
 
                 if (isCustomFilter)
                 {
                     foreach (var item in GameController.IngameState.ServerData.PlayerInventories[0].Inventory.InventorySlotItems.Where(x => itemFilter(x.Item)))
                     {
                         var rect = item.GetClientRect();
-                        Graphics.DrawFrame(rect.TopLeft.ToVector2Num(), rect.BottomRight.ToVector2Num(), Settings.CustomFilterFrameColor, Settings.CustomFilterFrameThickness);
+                        Graphics.DrawFrame(rect.TopLeft, rect.BottomRight, Settings.CustomFilterFrameColor, Settings.CustomFilterFrameThickness);
                     }
                 }
 
@@ -486,7 +488,7 @@ public class HighlightedItems : BaseSettingsPlugin<Settings>
     private TimeSpan MouseDownDelay => TimeSpan.FromMilliseconds(5 + Settings.ExtraDelay.Value);
     private static readonly TimeSpan MouseUpDelay = TimeSpan.FromMilliseconds(5);
 
-    private async SyncTask<bool> MoveItem(SharpDX.Vector2 itemPosition)
+    private async SyncTask<bool> MoveItem(Vector2 itemPosition)
     {
         itemPosition += WindowOffset;
         Keyboard.KeyDown(Keys.LControlKey);
@@ -519,7 +521,7 @@ public class HighlightedItems : BaseSettingsPlugin<Settings>
         return true;
     }
 
-    private bool IsButtonPressed(SharpDX.RectangleF buttonRect)
+    private bool IsButtonPressed(RectangleF buttonRect)
     {
         if (Control.MouseButtons == MouseButtons.Left &&
             CanClickButtons)

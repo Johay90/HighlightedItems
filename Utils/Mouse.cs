@@ -1,5 +1,6 @@
-﻿using System.Runtime.InteropServices;
-using SharpDX;
+﻿using System.Numerics;
+using System.Runtime.InteropServices;
+using GameOffsets2.Native;
 
 namespace HighlightedItems.Utils;
 
@@ -21,11 +22,11 @@ internal class Mouse
     public static extern bool SetCursorPos(int x, int y);
 
     [DllImport("user32.dll")]
-    public static extern bool GetCursorPos(out Point lpPoint);
+    public static extern bool GetCursorPos(out Vector2i lpPoint);
 
-    public static Point GetCursorPosition()
+    public static Vector2i GetCursorPosition()
     {
-        Point lpPoint;
+        Vector2i lpPoint;
         GetCursorPos(out lpPoint);
 
         return lpPoint;
