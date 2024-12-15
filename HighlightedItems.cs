@@ -370,6 +370,8 @@ public class HighlightedItems : BaseSettingsPlugin<Settings>
         || InGameState.IngameUi.StashElement.IsVisible
         || InGameState.IngameUi.SellWindow.IsVisible
         || InGameState.IngameUi.SellWindowHideout.IsVisible
+        || InGameState.IngameUi.PurchaseWindow.IsVisible
+        || InGameState.IngameUi.PurchaseWindowHideout.IsVisible
         || InGameState.IngameUi.TradeWindow.IsVisible
         || InGameState.IngameUi.GuildStashElement.IsVisible;
 
