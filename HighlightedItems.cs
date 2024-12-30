@@ -387,8 +387,19 @@ public class HighlightedItems : BaseSettingsPlugin<Settings>
             return false;
         }
 
+        var inventorySpace = new InventorySpace(Settings.IgnoredCells);
+        var currentInventory = GameController.IngameState.ServerData.PlayerInventories[0].Inventory.InventorySlotItems;
+        var optimizedItems = inventorySpace.OptimizeItemSelection(items.ToList(), currentInventory);
+
+        if (!optimizedItems.Any())
+        {
+            DebugWindow.LogMsg("HighlightedItems: No items would fit in inventory, aborting");
+            return false;
+        }
+
         var prevMousePos = Mouse.GetCursorPosition();
-        foreach (var item in items)
+
+        foreach (var item in optimizedItems)
         {
             if (MoveCancellationRequested)
             {
@@ -404,12 +415,6 @@ public class HighlightedItems : BaseSettingsPlugin<Settings>
             if (!InGameState.IngameUi.InventoryPanel.IsVisible)
             {
                 DebugWindow.LogMsg("HighlightedItems: Inventory Panel closed, aborting loop");
-                break;
-            }
-
-            if (IsInventoryFull())
-            {
-                DebugWindow.LogMsg("HighlightedItems: Inventory full, aborting loop");
                 break;
             }
 
@@ -438,51 +443,6 @@ public class HighlightedItems : BaseSettingsPlugin<Settings>
         {
             return [];
         }
-    }
-
-    private bool IsInventoryFull()
-    {
-        var inventoryItems = GameController.IngameState.ServerData.PlayerInventories[0].Inventory.InventorySlotItems;
-
-        // quick sanity check
-        if (inventoryItems.Count < 12)
-        {
-            return false;
-        }
-
-        // track each inventory slot
-        bool[,] inventorySlot = new bool[12, 5];
-
-        // iterate through each item in the inventory and mark used slots
-        foreach (var inventoryItem in inventoryItems)
-        {
-            int x = inventoryItem.PosX;
-            int y = inventoryItem.PosY;
-            int height = inventoryItem.SizeY;
-            int width = inventoryItem.SizeX;
-            for (int row = x; row < x + width; row++)
-            {
-                for (int col = y; col < y + height; col++)
-                {
-                    inventorySlot[row, col] = true;
-                }
-            }
-        }
-
-        // check for any empty slots
-        for (int x = 0; x < 12; x++)
-        {
-            for (int y = 0; y < 5; y++)
-            {
-                if (inventorySlot[x, y] == false)
-                {
-                    return false;
-                }
-            }
-        }
-
-        // no empty slots, so inventory is full
-        return true;
     }
 
     private static readonly TimeSpan KeyDelay = TimeSpan.FromMilliseconds(10);
